@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model Quote {
+  id              String       @id @default(cuid())
+  shop            String
+  publicToken     String       @unique
+  number          Int
+  status          String       @default("draft")
+  companyId       String?
+  companyName     String?
+  contactEmail    String?
+  contactName     String?
+  currency        String       @default("USD")
+  subtotal        Float        @default(0)
+  discountTotal   Float        @default(0)
+  total           Float        @default(0)
+  depositPercent  Int          @default(0)
+  notes           String?
+  expiresAt       DateTime?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  draftOrderId    String?
+  draftOrderName  String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  items           QuoteItem[]
+  versions        QuoteVersion[]
+  events          QuoteEvent[]
+
+  @@index([shop, status])
+  @@index([shop, createdAt])
+}
+
+model QuoteItem {
+  id              String   @id @default(cuid())
+  quoteId         String
+  productId       String?
+  variantId       String?
+  sku             String?
+  title           String
+  variantTitle    String?
+  quantity        Int      @default(1)
+  unitPrice       Float
+  originalPrice   Float?
+  discountPercent Float    @default(0)
+  lineTotal       Float
+  imageUrl        String?
+  position        Int      @default(0)
+  quote           Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+}
+
+model QuoteVersion {
+  id        String   @id @default(cuid())
+  quoteId   String
+  version   Int
+  snapshot  String
+  createdBy String?
+  createdAt DateTime @default(now())
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@unique([quoteId, version])
+}
+
+model QuoteEvent {
+  id        String   @id @default(cuid())
+  quoteId   String
+  type      String
+  meta      String?
+  createdAt DateTime @default(now())
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId, createdAt])
+}
+
+model ShopCounter {
+  shop      String  @id
+  lastQuote Int     @default(0)
+}
